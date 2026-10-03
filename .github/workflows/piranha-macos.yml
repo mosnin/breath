@@ -105,7 +105,7 @@ jobs:
           cp v2/target/*-apple-darwin/release/bundle/dmg/*.dmg dist/
           ls -la dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Piranha-macos-${{ inputs.arch || 'universal' }}
           path: dist/*
