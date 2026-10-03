@@ -7681,6 +7681,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "piranha"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "flume 0.11.1",
+ "futures",
+ "hex",
+ "hmac",
+ "libc",
+ "mdns-sd",
+ "regex",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serialport",
+ "sha2 0.10.9",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-shell",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-serial",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "pkcs8"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13200,35 +13229,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
- "uuid",
-]
-
-[[package]]
-name = "wifi-densepose-desktop"
-version = "0.3.1"
-dependencies = [
- "chrono",
- "flume 0.11.1",
- "futures",
- "hex",
- "hmac",
- "libc",
- "mdns-sd",
- "regex",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "serialport",
- "sha2 0.10.9",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-shell",
- "thiserror 2.0.18",
- "tokio",
- "tokio-serial",
- "tracing",
  "uuid",
 ]
 

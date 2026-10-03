@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Merged into Piranha.app/Contents/Info.plist by the Tauri bundler. -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Piranha discovers and talks to ESP32 WiFi sensing nodes on your local network.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_ruview._udp</string>
+    </array>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>MIT License. Based on RuView by rUv.</string>
+</dict>
+</plist>

@@ -10,7 +10,7 @@
 
 # ---------------------------------------------------------------------------
 # GTK3 / glib / gdk* family — RUSTSEC-2024-0411..0420, RUSTSEC-2024-0429
-# Reason: These crates are pulled in by wifi-densepose-desktop via Tauri v2's
+# Reason: These crates are pulled in by piranha via Tauri v2's
 #   native WebView dependencies on Linux (libwebkit2gtk-4.1).  They are
 #   flagged as unmaintained because the GTK3 Rust bindings maintainers have
 #   moved to GTK4.  This codebase does NOT make direct use of any of the

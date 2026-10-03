@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Piranha is not sandboxed: it spawns the bundled sensing-server,
+         talks to ESP32 nodes over USB serial and the local network. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+    <key>com.apple.security.device.usb</key>
+    <true/>
+    <key>com.apple.security.device.serial</key>
+    <true/>
+    <!-- Required by WKWebView JIT under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+</dict>
+</plist>

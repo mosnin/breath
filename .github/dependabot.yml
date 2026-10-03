@@ -27,7 +27,7 @@ updates:
   # Desktop UI npm deps. Direct vite devDep currently has a HIGH advisory
   # (dev-server-only path traversal); track future bumps automatically.
   - package-ecosystem: npm
-    directory: /v2/crates/wifi-densepose-desktop/ui
+    directory: /v2/crates/piranha/ui
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

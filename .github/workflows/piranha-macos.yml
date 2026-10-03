@@ -1,0 +1,119 @@
+name: Piranha macOS
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    tags: ["piranha-v*"]
+    paths:
+      - "v2/**"
+      - ".github/workflows/piranha-macos.yml"
+  pull_request:
+    paths:
+      - "v2/**"
+      - ".github/workflows/piranha-macos.yml"
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "universal, arm64 or x86_64"
+        required: false
+        default: universal
+
+concurrency:
+  group: piranha-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: UI + Rust checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: v2/crates/piranha/ui/package-lock.json
+
+      - name: UI build and tests
+        working-directory: v2/crates/piranha/ui
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      - name: Tauri system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libudev-dev libssl-dev pkg-config
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v2
+          key: piranha-checks
+
+      - name: cargo test -p piranha
+        working-directory: v2
+        run: cargo test -p piranha --locked
+
+  build-macos:
+    name: Build Piranha.app (${{ inputs.arch || 'universal' }})
+    runs-on: macos-14
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: v2/crates/piranha/ui/package-lock.json
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v2
+          key: piranha-macos-${{ inputs.arch || 'universal' }}
+
+      - name: Build
+        run: v2/crates/piranha/scripts/build-macos.sh "${{ inputs.arch || 'universal' }}"
+
+      - name: Verify bundle
+        run: |
+          set -euo pipefail
+          APP=$(ls -d v2/target/*-apple-darwin/release/bundle/macos/Piranha.app)
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          plutil -p "$APP/Contents/Info.plist" | grep -E 'CFBundleName|CFBundleIdentifier|CFBundleExecutable|LSMinimumSystemVersion|NSLocalNetworkUsageDescription'
+          lipo -info "$APP/Contents/MacOS/Piranha"
+          lipo -info "$APP/Contents/MacOS/sensing-server"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          "$APP/Contents/MacOS/sensing-server" --help | head -5
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          ditto -c -k --keepParent "$APP" dist/Piranha-macos-${{ inputs.arch || 'universal' }}.app.zip
+          cp v2/target/*-apple-darwin/release/bundle/dmg/*.dmg dist/
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Piranha-macos-${{ inputs.arch || 'universal' }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/piranha-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

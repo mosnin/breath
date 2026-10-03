@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Piranha",
+  "mainBinaryName": "Piranha",
+  "version": "0.1.0",
+  "identifier": "com.piranha.app",
+  "build": {
+    "frontendDist": "ui/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": {
+      "cwd": "ui",
+      "script": "npm run dev"
+    },
+    "beforeBuildCommand": {
+      "cwd": "ui",
+      "script": "npm run build"
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Piranha",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "WiFi sensing for your Mac",
+    "longDescription": "Piranha manages ESP32 WiFi CSI sensing nodes and the RuView sensing server: discovery, firmware flashing, OTA updates, edge modules, live sensing and mesh topology.",
+    "copyright": "MIT License. Based on RuView by rUv.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

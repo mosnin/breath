@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123a5c"/>
+      <stop offset="1" stop-color="#06121f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.62" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#2fd3c7" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#2fd3c7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d6f82"/>
+      <stop offset="0.55" stop-color="#9fb2c3"/>
+      <stop offset="0.56" stop-color="#e2513a"/>
+      <stop offset="1" stop-color="#b8261a"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3b4b5c"/>
+      <stop offset="1" stop-color="#6c7f92"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
+    <!-- WiFi sensing arcs radiating from the jaws -->
+    <g fill="none" stroke="#2fd3c7" stroke-linecap="round" opacity="0.55">
+      <path d="M 805 395 A 150 150 0 0 1 805 645" stroke-width="22"/>
+      <path d="M 845 335 A 230 230 0 0 1 845 705" stroke-width="22" opacity="0.7"/>
+      <path d="M 885 280 A 310 310 0 0 1 885 760" stroke-width="22" opacity="0.45"/>
+    </g>
+    <!-- bubbles -->
+    <circle cx="300" cy="260" r="16" fill="#9fe8e2" opacity="0.5"/>
+    <circle cx="345" cy="215" r="10" fill="#9fe8e2" opacity="0.4"/>
+    <circle cx="265" cy="205" r="7" fill="#9fe8e2" opacity="0.35"/>
+  </g>
+
+  <!-- tail -->
+  <path d="M 330 520 L 175 375 Q 215 520 175 665 Z" fill="url(#fin)"/>
+  <!-- dorsal fin -->
+  <path d="M 440 395 Q 480 285 585 330 Q 540 360 545 385 Z" fill="url(#fin)"/>
+  <!-- anal fin -->
+  <path d="M 430 640 Q 455 720 540 715 Q 510 680 520 650 Z" fill="#9b1f15"/>
+
+  <!-- body -->
+  <path d="M 315 520
+           C 360 405, 520 345, 650 365
+           C 720 375, 770 420, 790 470
+           L 700 520
+           L 806 566
+           C 780 640, 700 690, 600 695
+           C 470 700, 360 640, 315 520 Z" fill="url(#back)"/>
+
+  <!-- mouth interior -->
+  <path d="M 792 468 L 700 520 L 806 566 Z" fill="#2a0a0a"/>
+  <!-- upper teeth -->
+  <path d="M 789 469 L 793 495 L 774 479 Z M 768 481 L 772 507 L 753 491 Z M 747 493 L 751 519 L 732 503 Z M 726 505 L 730 531 L 711 515 Z" fill="#ffffff"/>
+  <!-- lower teeth -->
+  <path d="M 711 525 L 730 507 L 730 533 Z M 735 536 L 754 518 L 754 544 Z M 760 546 L 779 528 L 779 554 Z M 784 557 L 803 539 L 803 565 Z" fill="#ffffff"/>
+
+  <!-- gill line -->
+  <path d="M 625 395 Q 590 500 640 650" fill="none" stroke="#3b4b5c" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <!-- pectoral fin -->
+  <path d="M 600 575 Q 540 600 515 650 Q 585 640 620 595 Z" fill="#8e1a12" opacity="0.85"/>
+
+  <!-- eye -->
+  <circle cx="700" cy="440" r="30" fill="#f7d34a"/>
+  <circle cx="707" cy="440" r="16" fill="#111"/>
+  <circle cx="712" cy="434" r="5" fill="#fff"/>
+
+  <!-- squircle edge highlight -->
+  <rect x="101" y="101" width="822" height="822" rx="184" ry="184" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+</svg>

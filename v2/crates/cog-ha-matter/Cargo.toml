@@ -41,7 +41,7 @@ sha2 = { workspace = true }
 ed25519-dalek = "2.1"
 
 # mDNS responder (ADR-116 P4 §2.2): pure-Rust zero-conf daemon.
-# Same version pinned in wifi-densepose-desktop to keep the
+# Same version pinned in piranha to keep the
 # workspace lockfile narrow.
 mdns-sd = "0.11"
 
