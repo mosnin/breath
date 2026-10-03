@@ -30,6 +30,9 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Discovery (mDNS + UDP)
 mdns-sd = "0.11"
+
+# Local network interfaces (sensor UDP allowlist)
+if-addrs = "0.13"
 flume = "0.11"
 
 # Serial port (cross-platform)

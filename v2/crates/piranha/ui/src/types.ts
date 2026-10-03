@@ -180,6 +180,10 @@ export interface ServerConfig {
   model_dir: string | null;
   log_level: string;
   source: DataSource;
+  /** Overrides the saved sensor UDP bind address for this start. */
+  udp_bind?: string | null;
+  /** Overrides the saved sensor allowlist for this start. */
+  udp_allow?: string | null;
 }
 
 export interface ServerStatus {
@@ -225,6 +229,10 @@ export interface AppSettings {
   bind_address: string;
   ui_path: string;
   ota_psk: string;
+  /** Address the server listens on for ESP32 CSI frames ("0.0.0.0" = network). */
+  udp_bind: string;
+  /** Comma-separated IP/CIDR sensors allowed to send; empty = this Mac's networks. */
+  udp_allow: string;
   auto_discover: boolean;
   discover_interval_ms: number;
   theme: "dark" | "light";

@@ -8,6 +8,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   bind_address: "127.0.0.1",
   ui_path: "",
   ota_psk: "",
+  udp_bind: "0.0.0.0",
+  udp_allow: "",
   auto_discover: true,
   discover_interval_ms: 10_000,
   theme: "dark",
@@ -18,13 +20,15 @@ export function Settings() {
   const [saved, setSaved] = useState(false);
   const [showPsk, setShowPsk] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lanSubnets, setLanSubnets] = useState<string[] | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const persisted = await invoke<AppSettings | null>("get_settings");
-        if (persisted) setSettings(persisted);
+        if (persisted) setSettings({ ...DEFAULT_SETTINGS, ...persisted });
+        setLanSubnets(await invoke<string[]>("detect_lan_subnets"));
       } catch {
         // Settings command may not exist yet
       }
@@ -127,6 +131,40 @@ export function Settings() {
             />
           </Field>
         </div>
+      </Section>
+
+      {/* Sensor network */}
+      <Section title="Sensor Network">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "var(--space-4)" }}>
+          <Field label="Listen For Sensors On">
+            <select
+              value={settings.udp_bind === "127.0.0.1" ? "127.0.0.1" : "0.0.0.0"}
+              onChange={(e) => update("udp_bind", e.target.value)}
+            >
+              <option value="0.0.0.0">Local network (Wi-Fi / Ethernet)</option>
+              <option value="127.0.0.1">This Mac only</option>
+            </select>
+          </Field>
+          <Field label="Allowed Sensor Addresses">
+            <input
+              type="text"
+              value={settings.udp_allow}
+              onChange={(e) => update("udp_allow", e.target.value)}
+              disabled={settings.udp_bind === "127.0.0.1"}
+              placeholder={
+                lanSubnets && lanSubnets.length > 0
+                  ? `Automatic: ${lanSubnets.join(", ")}`
+                  : "Automatic: this Mac's local networks"
+              }
+              style={{ fontFamily: "var(--font-mono)" }}
+            />
+          </Field>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
+          ESP32 boards send sensing data to this Mac over UDP port {settings.server_udp_port}. Leave the
+          address list empty to accept boards on the same network as this Mac, or enter specific IPs or
+          ranges, comma-separated (e.g. 192.168.1.50, 10.0.0.0/24). Applies the next time the server starts.
+        </p>
       </Section>
 
       {/* Security */}

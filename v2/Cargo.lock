@@ -7689,6 +7689,7 @@ dependencies = [
  "futures",
  "hex",
  "hmac",
+ "if-addrs",
  "libc",
  "mdns-sd",
  "regex",

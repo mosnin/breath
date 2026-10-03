@@ -51,6 +51,7 @@ pub fn run() {
             server::server_status,
             server::restart_server,
             server::server_logs,
+            server::detect_lan_subnets,
             // Provision
             provision::provision_node,
             provision::read_nvs,

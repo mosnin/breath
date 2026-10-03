@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 use tauri::{AppHandle, Manager, State};
 
+use crate::commands::settings::load_settings;
 use crate::state::AppState;
 
 const fn server_binary_name(is_windows: bool) -> &'static str {
@@ -38,6 +39,93 @@ fn configure_log_level(cmd: &mut Command, log_level: Option<&str>) {
     if let Some(log_level) = log_level {
         cmd.env("RUST_LOG", log_level);
     }
+}
+
+/// How the sensing server's UDP CSI receiver is exposed to ESP32 boards.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct UdpExposure {
+    /// Value for `--udp-bind`.
+    pub bind: String,
+    /// Values for `--udp-allow` (IP or CIDR each).
+    pub allow: Vec<String>,
+    /// True when the allowlist came from this Mac's network interfaces
+    /// rather than from the user's settings.
+    pub auto_detected: bool,
+}
+
+/// IPv4 subnets of this machine's active, non-loopback interfaces in CIDR
+/// form (e.g. `192.168.1.0/24`). Sensors on the same Wi-Fi/LAN as the Mac
+/// fall inside one of these.
+pub fn local_ipv4_subnets() -> Vec<String> {
+    let mut subnets = Vec::new();
+    let Ok(ifaces) = if_addrs::get_if_addrs() else {
+        return subnets;
+    };
+    for iface in ifaces {
+        if let if_addrs::IfAddr::V4(v4) = iface.addr {
+            if let Some(cidr) = ipv4_subnet(v4.ip, v4.netmask) {
+                if !subnets.contains(&cidr) {
+                    subnets.push(cidr);
+                }
+            }
+        }
+    }
+    subnets
+}
+
+fn ipv4_subnet(ip: std::net::Ipv4Addr, netmask: std::net::Ipv4Addr) -> Option<String> {
+    if ip.is_loopback() || ip.is_link_local() || ip.is_unspecified() {
+        return None;
+    }
+    let mask = u32::from(netmask);
+    let prefix = mask.count_ones();
+    // A non-contiguous or empty mask would make the allowlist match far too much.
+    if prefix == 0 || mask.leading_ones() != prefix {
+        return None;
+    }
+    let network = std::net::Ipv4Addr::from(u32::from(ip) & mask);
+    Some(format!("{network}/{prefix}"))
+}
+
+/// Decide the UDP bind address and source allowlist for the sensing server.
+///
+/// The server refuses a routable bind without an allowlist (ADR-296), so
+/// when the user hasn't listed allowed sensors we allow this Mac's own
+/// local subnets. If no subnet can be found we fall back to loopback.
+pub fn resolve_udp_exposure(bind: &str, allow: &str, detected: &[String]) -> UdpExposure {
+    let bind = match bind.trim() {
+        "" => "0.0.0.0".to_string(),
+        b => b.to_string(),
+    };
+    let is_loopback = bind
+        .parse::<std::net::IpAddr>()
+        .map(|ip| ip.is_loopback())
+        .unwrap_or(false);
+    if is_loopback {
+        return UdpExposure { bind, allow: Vec::new(), auto_detected: false };
+    }
+
+    let explicit: Vec<String> = allow
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .collect();
+    if !explicit.is_empty() {
+        return UdpExposure { bind, allow: explicit, auto_detected: false };
+    }
+    if !detected.is_empty() {
+        return UdpExposure { bind, allow: detected.to_vec(), auto_detected: true };
+    }
+
+    tracing::warn!("No local network found; sensing server will only accept local CSI frames");
+    UdpExposure { bind: "127.0.0.1".into(), allow: Vec::new(), auto_detected: false }
+}
+
+/// Tauri command: the subnets Piranha would allow automatically right now.
+#[tauri::command]
+pub async fn detect_lan_subnets() -> Result<Vec<String>, String> {
+    Ok(local_ipv4_subnets())
 }
 
 /// Find the sensing server binary path.
@@ -139,14 +227,23 @@ pub async fn start_server(
     }
     configure_log_level(&mut cmd, config.log_level.as_deref());
 
-    // Default to explicit "simulated" demo mode when the desktop user hasn't
-    // chosen a source — this is the *Tauri demo* app, not a production
-    // sensing endpoint, so the demo default is correct here. Critically, the
-    // value passed downstream is the **explicit** "simulated", not "auto",
-    // which means the sensing-server will tag the data as synthetic in its
-    // API responses rather than silently fall back (issue #937 fix in
-    // sensing-server's `auto` handler).
-    let source = config.source.as_deref().unwrap_or("simulated");
+    // Let ESP32 boards on this Mac's network reach the UDP CSI receiver.
+    let settings = load_settings(&app);
+    let udp = resolve_udp_exposure(
+        config.udp_bind.as_deref().unwrap_or(&settings.udp_bind),
+        config.udp_allow.as_deref().unwrap_or(&settings.udp_allow),
+        &local_ipv4_subnets(),
+    );
+    cmd.args(["--udp-bind", &udp.bind]);
+    if !udp.allow.is_empty() {
+        cmd.args(["--udp-allow", &udp.allow.join(",")]);
+    }
+    tracing::info!("Sensor UDP: bind {} allow {:?}", udp.bind, udp.allow);
+
+    // Piranha defaults to real ESP32 hardware. Demo data is only used when
+    // the user explicitly picks "simulate", which the sensing-server tags
+    // as synthetic in its API responses.
+    let source = config.source.as_deref().unwrap_or("esp32");
     cmd.args(["--source", source]);
 
     // Redirect stdout/stderr to pipes for monitoring
@@ -181,6 +278,7 @@ pub async fn start_server(
         http_port: config.http_port,
         ws_port: config.ws_port,
         udp_port: config.udp_port,
+        udp,
     })
 }
 
@@ -393,7 +491,9 @@ pub async fn restart_server(
             log_level: None,
             bind_address: None,
             server_path: None,
-            source: None, // Falls through to explicit "simulated" — Tauri demo default.
+            source: None, // Falls through to the "esp32" default.
+            udp_bind: None,
+            udp_allow: None,
         }
     };
 
@@ -434,6 +534,12 @@ pub struct ServerConfig {
     pub server_path: Option<String>,
     /// Data source: "auto", "wifi", "esp32", "simulate"
     pub source: Option<String>,
+    /// Overrides the `udp_bind` setting for this start.
+    #[serde(default)]
+    pub udp_bind: Option<String>,
+    /// Overrides the `udp_allow` setting for this start.
+    #[serde(default)]
+    pub udp_allow: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -442,6 +548,7 @@ pub struct ServerStartResult {
     pub http_port: Option<u16>,
     pub ws_port: Option<u16>,
     pub udp_port: Option<u16>,
+    pub udp: UdpExposure,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -515,9 +622,61 @@ mod tests {
             bind_address: None,
             server_path: None,
             source: Some("simulate".to_string()),
+            udp_bind: None,
+            udp_allow: None,
         };
 
         assert_eq!(config.http_port, Some(8080));
         assert_eq!(config.ws_port, Some(8765));
+    }
+
+    #[test]
+    fn subnet_from_interface_address() {
+        let ip = "192.168.1.42".parse().unwrap();
+        assert_eq!(
+            ipv4_subnet(ip, "255.255.255.0".parse().unwrap()).as_deref(),
+            Some("192.168.1.0/24")
+        );
+        assert_eq!(
+            ipv4_subnet("10.20.30.40".parse().unwrap(), "255.255.0.0".parse().unwrap()).as_deref(),
+            Some("10.20.0.0/16")
+        );
+        // Loopback, link-local and degenerate masks are never allowlisted.
+        assert_eq!(ipv4_subnet("127.0.0.1".parse().unwrap(), "255.0.0.0".parse().unwrap()), None);
+        assert_eq!(ipv4_subnet("169.254.3.4".parse().unwrap(), "255.255.0.0".parse().unwrap()), None);
+        assert_eq!(ipv4_subnet(ip, "0.0.0.0".parse().unwrap()), None);
+        assert_eq!(ipv4_subnet(ip, "255.0.255.0".parse().unwrap()), None);
+    }
+
+    #[test]
+    fn udp_exposure_defaults_to_local_subnets() {
+        let detected = vec!["192.168.1.0/24".to_string()];
+        let udp = resolve_udp_exposure("0.0.0.0", "", &detected);
+        assert_eq!(udp.bind, "0.0.0.0");
+        assert_eq!(udp.allow, detected);
+        assert!(udp.auto_detected);
+
+        // Empty bind means the network default too.
+        assert_eq!(resolve_udp_exposure("", "", &detected).bind, "0.0.0.0");
+    }
+
+    #[test]
+    fn udp_exposure_prefers_user_allowlist() {
+        let udp = resolve_udp_exposure("0.0.0.0", " 10.0.0.5, 10.1.0.0/16 ,", &["192.168.1.0/24".into()]);
+        assert_eq!(udp.allow, vec!["10.0.0.5", "10.1.0.0/16"]);
+        assert!(!udp.auto_detected);
+    }
+
+    #[test]
+    fn udp_exposure_loopback_and_fallback() {
+        let local = resolve_udp_exposure("127.0.0.1", "10.0.0.5", &["192.168.1.0/24".into()]);
+        assert_eq!(local.bind, "127.0.0.1");
+        assert!(local.allow.is_empty());
+
+        // No network and no allowlist: the server would refuse a routable bind,
+        // so stay on loopback instead of failing to start.
+        let none = resolve_udp_exposure("0.0.0.0", "", &[]);
+        assert_eq!(none.bind, "127.0.0.1");
+        assert!(none.allow.is_empty());
     }
 }
