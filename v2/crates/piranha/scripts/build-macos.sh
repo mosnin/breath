@@ -33,7 +33,8 @@ if [[ ! -f "$WS_DIR/crates/worldgraph/wifi-densepose-worldgraph/Cargo.toml" ]]; 
 fi
 
 echo "==> Rust targets: ${RUST_TARGETS[*]}"
-rustup target add "${RUST_TARGETS[@]}" >/dev/null
+# Run from the workspace so rustup targets the toolchain pinned in rust-toolchain.toml.
+(cd "$WS_DIR" && rustup target add "${RUST_TARGETS[@]}")
 
 echo "==> Building sensing-server sidecar"
 SIDECARS=()
