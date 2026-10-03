@@ -44,14 +44,17 @@ for t in "${RUST_TARGETS[@]}"; do
   SIDECARS+=("$WS_DIR/target/$t/release/sensing-server")
 done
 
+# Tauri resolves externalBin per compiled target triple, and a universal
+# build compiles each architecture separately, so place every per-arch
+# sidecar plus the lipo'd universal one.
 mkdir -p "$CRATE_DIR/binaries"
-SIDECAR_OUT="$CRATE_DIR/binaries/sensing-server-$TAURI_TARGET"
+for i in "${!RUST_TARGETS[@]}"; do
+  cp "${SIDECARS[$i]}" "$CRATE_DIR/binaries/sensing-server-${RUST_TARGETS[$i]}"
+done
 if [[ "$TAURI_TARGET" == universal-apple-darwin ]]; then
-  lipo -create -output "$SIDECAR_OUT" "${SIDECARS[@]}"
-else
-  cp "${SIDECARS[0]}" "$SIDECAR_OUT"
+  lipo -create -output "$CRATE_DIR/binaries/sensing-server-$TAURI_TARGET" "${SIDECARS[@]}"
 fi
-chmod +x "$SIDECAR_OUT"
+chmod +x "$CRATE_DIR"/binaries/sensing-server-*
 
 echo "==> Installing UI dependencies"
 (cd "$CRATE_DIR/ui" && npm ci)
